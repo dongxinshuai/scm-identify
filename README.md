@@ -1,1 +1,1 @@
-# causal_model_identification
+# scm-learn
