@@ -1,1 +1,1 @@
-# scm-learn
+# scm-identification
