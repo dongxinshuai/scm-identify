@@ -1,0 +1,28 @@
+# Ignore pycache
+__pycache__
+
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore build and production files
+dist/
+build/
+*.log
+
+# Ignore environment variables and secrets
+.env
+.env.local
+.env.production
+.env.development
+
+# Ignore IDE and editor settings
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Ignore OS-generated files
+*.swp
+*.swo
+*.bak
