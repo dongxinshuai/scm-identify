@@ -12,7 +12,3 @@ python run_params_identify.py --s multitasking --n -1 --method trek --dot_path .
 # Results
 in ./multitasking_results
 
-# Reference
-"A Versatile Causal Discovery Framework to Allow Causally-Related Hidden Variables." ICLR 2024.
-
-"On the Parameter Identifiability of Partially Observed Linear Causal Models." NeurIPS 2024.
