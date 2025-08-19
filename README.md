@@ -1,7 +1,12 @@
-# Environment
-conda create -n myenv python=3.8\
-conda activate myenv\
-pip install -r requirements.txt
+# Environment with py3.8
+conda create -n py38 python==3.8\
+conda activate py38\
+pip install -r py38_requirements.txt
+
+# Environment with py3.12
+conda create -n py312 python==3.12\
+conda activate py312\
+pip install -r py312_requirements.txt
 
 # Structure Identification 
 python run_rlcd.py --s multitasking --sample 1 --stage1_method all --n -1 --alpha 0.05 
