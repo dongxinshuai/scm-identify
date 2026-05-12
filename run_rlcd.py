@@ -22,6 +22,8 @@ if __name__ == "__main__":
     parser.add_argument("--stage1_method", type=str, default="fges")
     parser.add_argument("--alpha", type=float, default=0.01)
     parser.add_argument("--rank_test_N_scaling", type=float, default=1)
+    parser.add_argument("--allow_nonleafx", type=int, default=1)
+    parser.add_argument("--maxk", type=int, default=3)
     
     args = parser.parse_args()
 
@@ -35,7 +37,9 @@ if __name__ == "__main__":
             "stage1_method": args.stage1_method,
             "alpha_dict": {0:args.alpha, 1:args.alpha, 2:args.alpha, 3:args.alpha},
             "stage1_ges_sparsity": args.stage1_ges_sparsity,
-            "stage1_partition_thres": args.stage1_partition_thres
+            "stage1_partition_thres": args.stage1_partition_thres,
+            "maxk": args.maxk,
+            "allow_nonleafx": args.allow_nonleafx,
         }
         result_dotgraph, result_stage1_dotgraph, _, _ = RLCD(args.sample, dgm.xvars, df_x, input_parameters)
     else:
@@ -45,7 +49,9 @@ if __name__ == "__main__":
             "stage1_method": args.stage1_method,
             "alpha_dict": {0:args.alpha, 1:args.alpha, 2:args.alpha, 3:args.alpha},
             "stage1_ges_sparsity": args.stage1_ges_sparsity,
-            "stage1_partition_thres": args.stage1_partition_thres
+            "stage1_partition_thres": args.stage1_partition_thres,
+            "maxk": args.maxk,
+            "allow_nonleafx": args.allow_nonleafx,
         }
         result_dotgraph, result_stage1_dotgraph, _, _ = RLCD(args.sample, dgm.xvars, None, input_parameters)
 

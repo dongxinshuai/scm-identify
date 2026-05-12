@@ -73,13 +73,44 @@ class DotGraph:
                 edgesToRemove.add(edgeSet)
         self.undirEdges = self.undirEdges - edgesToRemove
 
-    def toDot(self, outpath: str):
-        # TODO: Improve plotting for phase III with undirected edges
-        text = "digraph {\n"
+    # def toDot(self, outpath: str):
+    #     # TODO: Improve plotting for phase III with undirected edges
+    #     text = "digraph {\n"
 
-        # Add nodes
+    #     # Add nodes
+    #     for node in self.nodes:
+    #         text += f"{node} [color = {self.nodecolor[node]}]; "
+    #     text += "\n"
+
+    #     # Add undirected edges
+    #     text += "subgraph Undirected {\n"
+    #     text += f"edge [dir=none, color={self.default_edge_colour}]\n"
+    #     for edgeSet in self.undirEdges:
+    #         edgeSet = list(edgeSet)
+    #         text += f"{edgeSet[0]} -> {edgeSet[1]}\n"
+
+    #     text += "}\n\n"
+
+    #     # Add directed Edges
+    #     text += "subgraph Directed {\n"
+    #     text += f"edge [color={self.directed_edge_colour}]\n"
+    #     for edgeSet in self.dirEdges:
+    #         edgeSet = list(edgeSet)
+    #         text += f"{edgeSet[0]} -> {edgeSet[1]}\n"
+
+    #     text += "}\n\n"
+    #     text += "}\n"
+    #     with open(outpath, "w") as f:
+    #         f.write(text)
+
+    def toDot(self, outpath: str):
+        # UTF-8 support
+        text = "digraph {\n"
+        text += 'charset="UTF-8";\n'
+        
+        # Add nodes - ensure node names are quoted to handle special characters
         for node in self.nodes:
-            text += f"{node} [color = {self.nodecolor[node]}]; "
+            text += f'"{node}" [color = {self.nodecolor[node]}];\n'
         text += "\n"
 
         # Add undirected edges
@@ -87,7 +118,7 @@ class DotGraph:
         text += f"edge [dir=none, color={self.default_edge_colour}]\n"
         for edgeSet in self.undirEdges:
             edgeSet = list(edgeSet)
-            text += f"{edgeSet[0]} -> {edgeSet[1]}\n"
+            text += f'"{edgeSet[0]}" -> "{edgeSet[1]}"\n'
 
         text += "}\n\n"
 
@@ -96,11 +127,13 @@ class DotGraph:
         text += f"edge [color={self.directed_edge_colour}]\n"
         for edgeSet in self.dirEdges:
             edgeSet = list(edgeSet)
-            text += f"{edgeSet[0]} -> {edgeSet[1]}\n"
+            text += f'"{edgeSet[0]}" -> "{edgeSet[1]}"\n'
 
         text += "}\n\n"
         text += "}\n"
-        with open(outpath, "w") as f:
+        
+        # 指定 UTF-8 编码写入文件
+        with open(outpath, "w", encoding="utf-8") as f:
             f.write(text)
 
 

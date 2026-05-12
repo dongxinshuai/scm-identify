@@ -769,14 +769,19 @@ class LatentGroups:
 
             return children
 
-    def findDescendants(self, L: Cover, rigorous=True):
+    def findDescendants(self, L: Cover, rigorous=True, visited=None):
+        if visited is None:
+            visited = set()
+        if L in visited:
+            return set()
+        visited.add(L)
 
         descendants = set()
         children = self.findChildren(L, rigorous=rigorous)
         descendants |= children
-        
+
         for ch in children:
-            descendants |= self.findDescendants(ch, rigorous=rigorous)
+            descendants |= self.findDescendants(ch, rigorous=rigorous, visited=visited)
 
         return descendants
 
