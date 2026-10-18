@@ -9,7 +9,7 @@ import networkx as nx
 import math
 import StructureLearning.RLCD.misc as M
 from utils.GraphDrawer import DotGraph
-from StructureLearning.RLCD.Cover import Cover, setLength, getVars, setDifference, setIntersection, deduplicate
+from StructureLearning.RLCD.Cover import Cover, setLength, getVars, setDifference, setIntersection, deduplicate, getOrderedVarsString
 from utils.logger import LOGGER
 import numpy as np
 
@@ -115,7 +115,7 @@ class LatentGroups:
         success = False
         clusters = self.clusters.pop(k)
         for Vs, used_nonsinks, fullVs in clusters:
-            current_success = self.addCluster(Vs, fullVs, k, list(used_nonsinks))
+            current_success = self.addCluster(Vs, fullVs, k, sorted(used_nonsinks))
 
             if current_success:
 
@@ -222,8 +222,8 @@ class LatentGroups:
         for parent in parents:
             for V in parent.vars:
                 parents_str_set.add(V)
-        additional_used_nonsinks = list(set(used_nonsinks) - parents_str_set)
-        newCover_ls = list(parents_str_set)
+        additional_used_nonsinks = sorted(set(used_nonsinks) - parents_str_set)
+        newCover_ls = sorted(parents_str_set)
         if gap<len(additional_used_nonsinks):
             #raise ValueError
             return False
@@ -473,7 +473,7 @@ class LatentGroups:
 
     # Make a new connection between parent and child
     def connectNodes(self, parents, children):
-        for parent in parents:
+        for parent in sorted(parents, key=getOrderedVarsString):
             #assert not parent.isLatent, "Parent must be latent"
             self.addOrUpdateCover(parent, children)
 
@@ -861,7 +861,7 @@ class LatentGroups:
         visitedNA = visitedNA.copy()
         measures = measures.copy()
         Q = deque()  # FIFO queue for BFS
-        for L in Ls:
+        for L in sorted(Ls, key=getOrderedVarsString):
             if L.is_observed:
                 measures.add(L)
             else:
@@ -876,7 +876,7 @@ class LatentGroups:
             L = Q.popleft()
             visitedA.add(L)
 
-            for C in self.findChildren(L):
+            for C in sorted(self.findChildren(L), key=getOrderedVarsString):
                 if C.is_observed:
                     measures.add(C)
                 else:
@@ -1376,7 +1376,8 @@ def getLfromLatentGroups(G: LatentGroups, xvars: list):
 
     lvars_set = vars_set - set(xvars)
 
-    vars_ls = xvars + list(lvars_set)
+    # Preserve the same output latent numbering in every Python process.
+    vars_ls = xvars + sorted(lvars_set)
     L = np.zeros((len(vars_ls), len(vars_ls)))
 
     for cover, val in G.latentDict.items():

@@ -14,11 +14,32 @@ class LinearSCM(object):
 
         # f_ij: vi->vj, V=F^T@V+e
         self.F = None 
+        self.K = None 
         # variance of error terms
         self.omega = [] 
-
         self.seed = seed
         np.random.seed(self.seed)
+
+
+    def get_sympy_cov(self):
+
+        import sympy
+        from sympy import Matrix, Symbol, diag, simplify, nsimplify
+        from sympy.solvers import solve
+
+        num_vars = len(self.vars)
+
+        I_sym = Matrix(np.eye(num_vars, dtype=int))
+        F_sym = Matrix([[Symbol(f'F_{i},{j}', real=True) if self.F[i, j]!=0 else 0
+                                for j in range(num_vars)] for i in range(num_vars)])
+
+        Omega_sym = diag(*[Symbol(f'Omega_{i}', real=True, positive=True)
+                                for i in range(num_vars)])  
+
+        Q_sym = (I_sym - F_sym.T).inv()
+        Sigma_sym = Q_sym @ Omega_sym @ Q_sym.T
+
+        return Sigma_sym
 
     def copy(self):
         return copy.deepcopy(self)
@@ -43,7 +64,7 @@ class LinearSCM(object):
     
 
     def random_variance(self):
-        return np.random.uniform(0.1, 1)
+        return np.random.uniform(0.1, 0.5)
 
     def random_coef(self):
         coef = 0

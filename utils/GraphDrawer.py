@@ -73,33 +73,6 @@ class DotGraph:
                 edgesToRemove.add(edgeSet)
         self.undirEdges = self.undirEdges - edgesToRemove
 
-    # def toDot(self, outpath: str):
-    #     # TODO: Improve plotting for phase III with undirected edges
-    #     text = "digraph {\n"
-
-    #     # Add nodes
-    #     for node in self.nodes:
-    #         text += f"{node} [color = {self.nodecolor[node]}]; "
-    #     text += "\n"
-
-    #     # Add undirected edges
-    #     text += "subgraph Undirected {\n"
-    #     text += f"edge [dir=none, color={self.default_edge_colour}]\n"
-    #     for edgeSet in self.undirEdges:
-    #         edgeSet = list(edgeSet)
-    #         text += f"{edgeSet[0]} -> {edgeSet[1]}\n"
-
-    #     text += "}\n\n"
-
-    #     # Add directed Edges
-    #     text += "subgraph Directed {\n"
-    #     text += f"edge [color={self.directed_edge_colour}]\n"
-    #     for edgeSet in self.dirEdges:
-    #         edgeSet = list(edgeSet)
-    #         text += f"{edgeSet[0]} -> {edgeSet[1]}\n"
-
-    #     text += "}\n\n"
-    #     text += "}\n"
     #     with open(outpath, "w") as f:
     #         f.write(text)
 
@@ -109,15 +82,14 @@ class DotGraph:
         text += 'charset="UTF-8";\n'
         
         # Add nodes - ensure node names are quoted to handle special characters
-        for node in self.nodes:
+        for node in sorted(self.nodes):
             text += f'"{node}" [color = {self.nodecolor[node]}];\n'
         text += "\n"
 
         # Add undirected edges
         text += "subgraph Undirected {\n"
         text += f"edge [dir=none, color={self.default_edge_colour}]\n"
-        for edgeSet in self.undirEdges:
-            edgeSet = list(edgeSet)
+        for edgeSet in sorted(tuple(sorted(edge)) for edge in self.undirEdges):
             text += f'"{edgeSet[0]}" -> "{edgeSet[1]}"\n'
 
         text += "}\n\n"
@@ -125,8 +97,7 @@ class DotGraph:
         # Add directed Edges
         text += "subgraph Directed {\n"
         text += f"edge [color={self.directed_edge_colour}]\n"
-        for edgeSet in self.dirEdges:
-            edgeSet = list(edgeSet)
+        for edgeSet in sorted(self.dirEdges):
             text += f'"{edgeSet[0]}" -> "{edgeSet[1]}"\n'
 
         text += "}\n\n"

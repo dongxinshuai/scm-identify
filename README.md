@@ -20,7 +20,23 @@ python run_params_identify.py --s multitasking --n -1 --method trek --dot_path .
 # Results
 in ./multitasking_results
 
+# Structure Identification with Nonstationary Data
+The input is a list of dataframes
+
+The evacuation scenario reads the four `Pilot4_message_*_inzone_*.csv` files
+from `Data/Pilot4_493_four_groups/` relative to this repository.
+
+python run_rlcd.py --s evacuation_cond_data --sample 1 --stage1_method fges --stage1_ges_sparsity 0.2 --n -1 --alpha 0.01 --use_lcdnod 1
+
+Run the focused regression tests with `python -m unittest discover -s tests -v`.
+For a full evacuation-data comparison across independent processes and hash seeds,
+run `python tests/check_evacuation_reproducibility.py` (results in `.diagnostics/reproducibility/`).
+
+
+
 # Reference
 "A Versatile Causal Discovery Framework to Allow Causally-Related Hidden Variables." ICLR 2024.
 
 "On the Parameter Identifiability of Partially Observed Linear Causal Models." NeurIPS 2024.
+
+"Identifying Partially Observed Causal Models from Heterogeneous/Nonstationary Data". ICML 2026.

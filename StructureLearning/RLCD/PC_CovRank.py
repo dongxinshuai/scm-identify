@@ -27,18 +27,15 @@ from causallearn.utils.PCUtils.BackgroundKnowledgeOrientUtils import \
     orient_by_background_knowledge
 
 
-class CovRank(CIT_Base):
-    def __init__(self, data, alpha, rescale_rank_test, **kwargs):
+class CovRankAsCI(CIT_Base):
+    def __init__(self, cov_rank_test_method, data, alpha, **kwargs):
         super().__init__(data, **kwargs)
         self.check_cache_method_consistent('CovRank', NO_SPECIFIED_PARAMETERS_MSG)
         self.assert_input_data_is_valid()
 
         self.data = (data-data.mean())/data.std()
         self.alpha = alpha
-
-        from CCARankTester import CCARankTester
-        alpha_dict = {i:self.alpha for i in range(data.shape[1])}
-        self.RankTester = CCARankTester(self.data, alpha_dict=alpha_dict, rescale_rank_test=rescale_rank_test)
+        self.RankTester = cov_rank_test_method
 
     def __call__(self, X, Y, condition_set=None):
         '''
@@ -55,7 +52,7 @@ class CovRank(CIT_Base):
         Xs, Ys, condition_set, cache_key = self.get_formatted_XYZ_and_cachekey(X, Y, condition_set)
         if cache_key in self.pvalue_cache: return self.pvalue_cache[cache_key]
         
-        _, p = self.RankTester.test(Xs+condition_set, Ys+condition_set, r=len(condition_set))
+        _, p = self.RankTester.get_statistics_and_p(Xs+condition_set, Ys+condition_set, r=len(condition_set))
         self.pvalue_cache[cache_key] = p
 
         return p
@@ -177,6 +174,7 @@ def pc_alg_true_cov_rank(
 
 def pc_cov_rank(
     data: ndarray, 
+    cov_rank_test_method,
     alpha=0.05, 
     rescale_rank_test=1,
     stable: bool = True, 
@@ -194,7 +192,7 @@ def pc_cov_rank(
         warnings.warn("The number of features is much larger than the sample size!")
 
 
-    return pc_alg_cov_rank(data=data, node_names=node_names, alpha=alpha, rescale_rank_test=rescale_rank_test, stable=stable, uc_rule=uc_rule,
+    return pc_alg_cov_rank(data=data, cov_rank_test_method=cov_rank_test_method, node_names=node_names, alpha=alpha, rescale_rank_test=rescale_rank_test, stable=stable, uc_rule=uc_rule,
                     uc_priority=uc_priority, background_knowledge=background_knowledge, verbose=verbose,
                     show_progress=show_progress, **kwargs)
 
@@ -202,6 +200,7 @@ def pc_cov_rank(
 
 def pc_alg_cov_rank(
     data: ndarray,
+    cov_rank_test_method, 
     node_names: List[str] | None,
     alpha: float,
     rescale_rank_test: float,
@@ -252,7 +251,7 @@ def pc_alg_cov_rank(
     """
 
     start = time.time()
-    indep_test = CovRank(data, alpha, rescale_rank_test, **kwargs)
+    indep_test = CovRankAsCI(cov_rank_test_method, data, alpha, **kwargs) #data is not actually used as rank test contains data
     cg_1 = SkeletonDiscovery.skeleton_discovery(data, alpha, indep_test, stable,
                                                 background_knowledge=background_knowledge, verbose=verbose,
                                                 show_progress=show_progress, node_names=node_names)

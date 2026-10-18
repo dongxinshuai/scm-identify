@@ -1,6 +1,9 @@
 # Ignore pycache
 __pycache__
 
+# Local reproducibility runs and downloaded diagnostic tools
+.diagnostics/
+
 
 # Ignore system files
 .DS_Store

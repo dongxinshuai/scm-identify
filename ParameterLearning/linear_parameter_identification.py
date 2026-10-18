@@ -146,10 +146,13 @@ def parameter_standard(df, F_bin, var_name_ls, device='cpu', lr=0.02, epochs=100
             #+ torch.min(torch.zeros_like(F),torch.abs(F)-0.005*torch.ones_like(F)).pow(2).sum()
             loss = nll # + penalty*100
 
-
+        #import torch.nn.utils as utils
+        #utils.clip_grad_norm_(params, max_norm=1.0) or utils.clip_grad_value_(params, clip_value=0.5)
         loss.backward()
         optimizer.step()
-        
+        #F_param.data.clamp_(-1, 1)
+        Omega_param.data.clamp_(0, 1)
+
         print(f"iter {i} loss {loss}, nll {nll}")
         print("mse", ((cov_X-emp_cov_X).pow(2)).mean())
         print(f"time {time.time()-t1}")
@@ -224,9 +227,9 @@ def parameter_by_trek(df, F_bin, var_name_ls, device='cpu', lr=0.02, epochs=100)
             #+ torch.min(torch.zeros_like(F),torch.abs(F)-0.005*torch.ones_like(F)).pow(2).sum()
             loss = nll + penalty*100
 
-
         loss.backward()
         optimizer.step()
+        #F.data.clamp_(-1, 1)
         
         print(f"iter {i} loss {loss}, nll {nll}")
         print("mse", ((cov_X-emp_cov_X).pow(2)).mean())
@@ -257,7 +260,15 @@ def get_F_bin_and_varnames_from_dotgraph(graph):
         return F_bin
 
     F_bin = get_F_bin(graph, var_name_ls)
-    return F_bin, var_name_ls
+
+    var_name_ls_new = []
+    for node_name in var_name_ls:
+        if node_name[0]=='"' and node_name[-1]=='"':
+            var_name_ls_new.append(node_name[1:-1])
+        else:
+            var_name_ls_new.append(node_name)
+
+    return F_bin, var_name_ls, var_name_ls_new
 
 
 def add_edge_coefficients_to_graph(graph, F_bin, F, var_name_ls):
@@ -308,7 +319,7 @@ def add_edge_coefficients_to_graph(graph, F_bin, F, var_name_ls):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser("params")
+    parser = argparse.ArgumentParser("find order")
     parser.add_argument("--device", type=str, default='cpu')
     parser.add_argument("--method", type=str, default='trek')
     parser.add_argument("--n", type=int, default=-1)

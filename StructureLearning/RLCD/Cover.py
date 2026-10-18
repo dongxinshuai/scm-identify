@@ -65,13 +65,13 @@ class Cover:
         return self.temp
 
     def takeOne(self):
-        return next(iter(self.vars))
+        return min(self.vars)
 
     def __str__(self):
         if len(self.vars) == 1:
             return next(iter(self.vars))
         else:
-            vars = ",".join(list(self.vars))
+            vars = ",".join(sorted(self.vars))
             return "{" + vars + "}"
 
     def __repr__(self):

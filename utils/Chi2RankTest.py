@@ -98,12 +98,73 @@ class Chi2RankTest(object):
 
         dfreedom = (p-r) * (q-r)
         criticalValue = chi2.ppf(1-alpha, dfreedom)
-        p = 1 - chi2.cdf(testStat, dfreedom)
+        prob = 1 - chi2.cdf(testStat, dfreedom)
         if_fail_to_reject = testStat<=criticalValue
 
         # due to numerical errors comparing criticalValue with testStat is more accurate 
 
         return if_fail_to_reject
+
+    def get_statistics_and_p(self, pcols, qcols, r):
+        '''
+        Parameters
+        ----------
+        pcols, qcols : column indices of data
+        r: null hypo that rank <= r
+        alpha: significance level
+
+        Returns
+        -------
+        if_fail_to_reject: 0 means reject and 1 means fail to reject
+        p : the p-value of the test
+        '''
+
+
+
+        cachekey = self.get_cachekey(pcols, qcols)
+
+        if cachekey in self.cca_cache_dict:
+            cancorr = self.cca_cache_dict[cachekey]
+        else:
+
+            X = self.data[:, pcols]
+            Y = self.data[:, qcols]
+
+            unnormalized_crosscovs = [self.unnormalized_crosscovs[pcols,:][:,pcols], self.unnormalized_crosscovs[pcols,:][:,qcols], \
+                         self.unnormalized_crosscovs[qcols,:][:,pcols], self.unnormalized_crosscovs[qcols,:][:,qcols]]
+
+            try:
+                comps = kcca_modified([X, Y], reg=0.,
+                    numCC=None, kernelcca=False, ktype='linear',
+                    gausigma=1.0, degree=2, crosscovs = unnormalized_crosscovs)
+
+                cancorr, _, _ = recon([X,Y], comps, kernelcca=False)
+                cancorr = cancorr[:,0,1]
+            except:
+                print(f"calculating cancorr error {pcols} {qcols}, using slower implementation instead")
+                cancorr = CanCorr(X, Y, tolerance=1e-8).cancorr
+
+            self.cca_cache_dict[cachekey] = cancorr
+
+        testStat = 0
+        p = len(pcols)
+        q = len(qcols)
+        
+        l = cancorr[r:]
+        for li in l:
+            li = min(li, 1-1e-15)
+            testStat += log(1)-log(1-li*li)
+        ratio = 0
+        for i in range(r):
+            li = cancorr[i]
+            ratio += 1/(li*li)-1
+
+        ratio += self.N*self.N_scaling - r - 0.5*(p+q+1)
+        testStat = testStat * ratio
+        dfreedom = (p-r) * (q-r)
+        prob = 1 - chi2.cdf(testStat, dfreedom)
+        return testStat, prob
+    
 
 
 def kcca_modified(
@@ -147,7 +208,7 @@ def kcca_modified(
     RH = (RH + RH.T) / 2.0
 
     maxCC = LH.shape[0]
-    r, Vs = eigh(LH, RH, eigvals=(maxCC - numCC, maxCC - 1))
+    r, Vs = eigh(LH, RH, subset_by_index=(maxCC - numCC, maxCC - 1))
     r[np.isnan(r)] = 0
     rindex = np.argsort(r)[::-1]
     comp = []

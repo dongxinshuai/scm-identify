@@ -30,11 +30,13 @@ def RLCD(
         "check_v": True,        
         "stages": 2,
         "stage1_method": "fges",
+        "stage1_dot_path": "",
         "stage1_ges_sparsity": 2,
         "stage1_CI_alpha": 0.01,
         "stage1_partition_thres": 3,
         "ranktest_method": None,
         "citest_method": None,
+        "multi_processing": 0,
     }
 
     parameters.update(input_parameters)
@@ -90,6 +92,33 @@ def RLCD(
                 Adj_stage1_dotgraph = AdjToGraph(Adj_stage1, xvars) 
 
                 partition = getPartition(xvars, abs(Adj_stage1), parameters['stage1_partition_thres'])
+
+            elif parameters['stage1_method']=='load':
+                assert(os.path.exists(parameters['stage1_dot_path']))
+                import pydot
+                dotgraph = pydot.graph_from_dot_file(parameters['stage1_dot_path'])[0]
+                def get_skeleton(dotgraph, xvars):
+                    node_indices = {name: i for i, name in enumerate(xvars)}
+                    node_indices.update({f'"{name}"': i for i, name in enumerate(xvars)})
+                    adjacency = np.zeros((len(xvars), len(xvars)))
+
+                    def add_edges(graph):
+                        # Both directed and undirected edges belong to the skeleton.
+                        # DOT edges may occur at the top level or in nested subgraphs.
+                        for edge in graph.get_edges():
+                            i = node_indices.get(edge.get_source())
+                            j = node_indices.get(edge.get_destination())
+                            if i is not None and j is not None and i != j:
+                                adjacency[i, j] = adjacency[j, i] = 1
+                        for subgraph in graph.get_subgraphs():
+                            add_edges(subgraph)
+
+                    add_edges(dotgraph)
+                    return adjacency
+
+                Adj_stage1 = get_skeleton(dotgraph, xvars)
+                partition = getPartition(xvars, abs(Adj_stage1), parameters['stage1_partition_thres'])
+            
             else:
                 raise NotImplementedError
 
@@ -255,14 +284,14 @@ def getPartition(xvars, Adj, clique_size_thres, direct_mode=False):
             fa_set.add(dsu.find(i))
             
         partition = []
-        for fa in fa_set:
+        for fa in sorted(fa_set):
             cliques = []
             for i in range(len(communities)):
                 if dsu.find(i)==fa:
                     cliques.append(communities[i])
             temp = {xvars[i] for i in set.union(*cliques)}
             if len(temp)>=4:
-                partition.append(list(temp))
+                partition.append(sorted(temp, key=xvars.index))
                 LOGGER.info(f"Put {temp} with length {len(temp)} into queue")
         
     return partition
@@ -360,11 +389,14 @@ def structuralRankTest(xvars, ranktest_method, alpha_dict, G: LatentGroups, As, 
     Ameasures += nonLeafs
     Bmeasures += nonLeafs
 
-    Ameasures = list(set(Ameasures))
-    Bmeasures = list(set(Bmeasures))
+    # Keep numerical inputs and cache population independent of set iteration.
+    Ameasures = sorted(set(Ameasures), key=xvars.index)
+    Bmeasures = sorted(set(Bmeasures), key=xvars.index)
 
     pcols = [xvars.index(a) for a in Ameasures]
     qcols = [xvars.index(b) for b in Bmeasures]
+
+    #print(As, Bs)
 
     fail_to_reject = ranktest_method.test(pcols, qcols, k, alpha_dict[k])
 
@@ -413,7 +445,7 @@ def findClusters_at_k_by_nonsinks(G: LatentGroups, k, nonsinks, parameters):
     allSubsets = [x for x in M.generateSubsetMinimal(current_activeSet, k-num_nonsinks)]
 
     
-    for v in current_activeSet:
+    for v in sorted(current_activeSet, key=getOrderedVarsString):
         if len(v)>=k-num_nonsinks+1 and k-num_nonsinks!=0: # more than or eq 
             tempset = current_activeSet.copy()
             tempset.remove(v)
@@ -450,7 +482,7 @@ def findClusters_at_k_by_nonsinks(G: LatentGroups, k, nonsinks, parameters):
 
         observed_vars_in_As = {x.__str__() for x in As if x.is_observed}
         observed_vars_in_As_and_nonsinks = observed_vars_in_As.union(set(nonsinks))
-        observed_vars_in_As_and_nonsinks = list(observed_vars_in_As_and_nonsinks)
+        observed_vars_in_As_and_nonsinks = sorted(observed_vars_in_As_and_nonsinks)
         observed_vars_in_As_and_nonsinks_idx_in_local_adj = [G.x_list_for_local_Adj.index(x) for x in observed_vars_in_As_and_nonsinks]
 
         temp_local_adj = G.local_Adj[observed_vars_in_As_and_nonsinks_idx_in_local_adj,:][:,observed_vars_in_As_and_nonsinks_idx_in_local_adj]
@@ -505,6 +537,10 @@ def findClusters_at_k_by_nonsinks(G: LatentGroups, k, nonsinks, parameters):
             #else:
             #    continue
 
+        #structuralRankTest(parameters['xvars'], parameters['ranktest_method'], parameters['alpha_dict'], G, 
+        #                   {G.X_dict['X16'], G.X_dict['X17']}, {G.X_dict['X1'],G.X_dict['X2'],G.X_dict['X3'],G.X_dict['X4']\
+        #                                                        ,G.X_dict['X5'],G.X_dict['X6'],G.X_dict['X7'],G.X_dict['X8']}, 1, [])
+        
         fail_to_reject, rk = structuralRankTest(parameters['xvars'], parameters['ranktest_method'], parameters['alpha_dict'], G, As, Bs, k, list(nonsinks))
         
 
@@ -682,8 +718,11 @@ def findClusters(G: LatentGroups, parameters):
             LOGGER.info(f"Unfolding {Ls}")
             LOGGER.info(f"G.activeSet {G.activeSet}")
             LOGGER.info(f"G.activeNonSinkSet {G.activeNonSinkSet}")
-            G, (found, terminate) = findClusters_at_k_mp(G, k, parameters, n_jobs=-1)
-            #G, (found, terminate) = findClusters_at_k(G, k, parameters)
+
+            if parameters['multi_processing']:
+                G, (found, terminate) = findClusters_at_k_mp(G, k, parameters, n_jobs=-1)
+            else:
+                G, (found, terminate) = findClusters_at_k(G, k, parameters)
 
             if found:
                 #G.reconnectNonAtomics()
@@ -734,7 +773,7 @@ def findClusters_finish(G: LatentGroups, parameters):
     else: 
 
         G.updateActiveSet(if_for_finish=False)
-        remain_covers = list(G.activeSet)
+        remain_covers = sorted(G.activeSet, key=getOrderedVarsString)
         remain_latent_covers = []
         remain_observed_covers = []
 
@@ -760,7 +799,8 @@ def findClusters_finish(G: LatentGroups, parameters):
         
         else:
             G.updateActiveSet(if_for_finish=True)
-            remain_covers = list(G.activeSet)
+            # The remaining latent chain must not depend on set iteration order.
+            remain_covers = sorted(G.activeSet, key=getOrderedVarsString)
             remain_latent_covers = []
 
             for i in range(len(remain_covers)):

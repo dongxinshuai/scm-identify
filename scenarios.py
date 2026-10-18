@@ -1,9 +1,10 @@
 from DGM.LinearSCM import LinearSCM
-from DGM.DataModel import DataModel
+from DGM.DataModel import DataModel, DataModelConditional
 import pandas as pd
 import functools
 import numpy as np
 import os 
+
 
 def teacher_burnout(normalized=False, seed=0):
 
@@ -38,6 +39,25 @@ def multitasking(normalized=False, seed=0):
     dgm = DataModel(df, df)
 
     return dgm 
+
+def evacuation_cond_data(normalized=False, seed=0):
+
+    data_df_list = []
+    data_dir = os.path.join(os.path.dirname(__file__), 'Data', 'Pilot4_493_four_groups')
+    for file_path in ["Pilot4_message_0_inzone_0.csv", "Pilot4_message_0_inzone_1.csv", "Pilot4_message_1_inzone_0.csv", "Pilot4_message_1_inzone_1.csv"]:
+        data_df=pd.read_csv(os.path.join(data_dir, file_path))
+
+        if normalized:
+            data_df=(data_df-data_df.mean())
+            data_df=data_df/data_df.std()
+            
+        rename_dict = {k:'X_'+k for k in data_df.columns}
+        data_df = data_df.rename(columns=rename_dict)
+        data_df_list.append(data_df)
+
+    dgm = DataModelConditional(data_df_list,data_df_list)
+
+    return dgm  
 
 def LLCM_LLH_Case1(seed=0):
     dgm = LinearSCM(seed=seed)
@@ -316,7 +336,6 @@ def LLCM_Tree_Case1(seed=0):
 
     return dgm
 
-
 dgm_by_scenario = {
     "LLCM_LLH_Case1": LLCM_LLH_Case1(), 
     "LLCM_LLH_Case2": LLCM_LLH_Case2(),
@@ -325,5 +344,6 @@ dgm_by_scenario = {
     "LLCM_Tree_Case1": LLCM_Tree_Case1(),
     "multitasking": multitasking(),
     "teacher_burnout": teacher_burnout(),
+    "evacuation_cond_data": evacuation_cond_data(),
 }
 

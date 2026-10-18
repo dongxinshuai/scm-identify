@@ -11,11 +11,12 @@ import os
 import glob
 from utils.GraphDrawer import DotGraph
 from utils.logger import LOGGER
-from StructureLearning.RLCD.Cover import Cover
+from StructureLearning.RLCD.Cover import Cover, getOrderedVarsString
 
 def generateSubsetMinimal(vset, k=1):
     """
     Given a set of Covers, generate all minimum subsets s.t. cardinality > k.
+    Emit candidates in a stable order based on variable names, not hashes.
     """
 
     def recursiveSearch(d, gap, currSubset=set()):
@@ -58,13 +59,13 @@ def generateSubsetMinimal(vset, k=1):
     # and v is a list of frozensets of variables
     d = {}
 
-    ordered_list = list(vset)
-    ordered_list.sort(key=lambda x: x.__hash__())
+    ordered_list = sorted(vset, key=getOrderedVarsString)
 
     for v in ordered_list:
         assert isinstance(v, Cover), "Should be Cover."
         n = len(v)
-        d[n] = d.get(n, set()).union([v])
+        # Keep ordered lists: set.pop() changes the search order across processes.
+        d.setdefault(n, []).append(v)
 
     # Run recursive search
     yield from recursiveSearch(d, k)

@@ -6,6 +6,44 @@ import os
 import scipy
 
 
+
+
+class DataModelConditional:
+    def __init__(self, df_v_list, df_x_list):
+        self.df_x_list = df_x_list.copy()
+        self.df_v_list = df_v_list.copy()
+        self.xvars = list(df_x_list[0].columns)
+        self.vars = list(df_v_list[0].columns)
+        self.N=0
+        for df_v in self.df_v_list:
+            self.N += len(df_v)
+        self.N = self.N// len(self.df_v_list)
+        
+    def generate_data(self, N, normalized=True):
+
+        df_x_list = []
+
+        for i in range(len(self.df_x_list)):
+
+            if N==-1:
+                num=len(self.df_x_list[i])
+            else:
+                num = N
+
+            df_x=self.df_x_list[i].sample(num,replace=False,random_state=0)
+            rest_df_x=self.df_x_list[i].drop(df_x.index)
+
+            if normalized:
+                df_x=(df_x-df_x.mean())/df_x.std()
+
+            df_x_list.append(df_x)
+
+        df_v_list = df_x_list
+
+        return df_x_list, df_v_list
+
+
+
 class DataModel:
     def __init__(self, df_v, df_x):
         self.df_x = df_x.copy()
